@@ -47,9 +47,6 @@
 
 **RISIKO IRL** is a modern web application that visualizes global conflicts in real-time on an interactive map inspired by the classic board game *Risk*. The app leverages [GDELT Project](https://www.gdeltproject.org/) data to monitor armed conflicts, civil wars, and cyber attacks worldwide, presenting them with a "gamified" yet professional aesthetic.
 
-### 🎮 Concept
-
-Imagine playing Risk, but with real-world live data. Every continent follows the traditional board game color scheme:
 
 | Continent | Color |
 |------------|--------|
