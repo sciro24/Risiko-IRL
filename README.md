@@ -290,36 +290,11 @@ npm run start
 
 ---
 
-## 📄 License
-
-Questo progetto è rilasciato sotto licenza **MIT**. Vedi il file [LICENSE](LICENSE) per maggiori dettagli.
-
----
-
-## 🤝 Contributing
-
-I contributi sono benvenuti! Per contribuire:
-
-1. Forka il repository
-2. Crea un branch per la tua feature (`git checkout -b feature/AmazingFeature`)
-3. Committa le modifiche (`git commit -m 'Add some AmazingFeature'`)
-4. Pusha il branch (`git push origin feature/AmazingFeature`)
-5. Apri una Pull Request
-
----
-
-## 📬 Contatti
-
-**Diego** - [@yourusername](https://github.com/yourusername)
-
-Project Link: [https://github.com/yourusername/Risiko-IRL](https://github.com/yourusername/Risiko-IRL)
-
----
 
 <div align="center">
 
 **⚔️ RISIKO IRL - Il mondo in tempo reale, come non l'hai mai visto ⚔️**
 
-*Built with ❤️ and Next.js*
+*Built by Diego*
 
 </div>
