@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react"
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps"
 import { EventMarker } from "./EventMarker"
 import { motion, AnimatePresence } from "framer-motion"
+import { Swords, Megaphone, Zap, Skull, AlertTriangle, Flame } from "lucide-react"
 
 const geoUrl = "https://unpkg.com/world-atlas@2.0.2/countries-110m.json"
 
@@ -19,7 +20,6 @@ const RISIKO_COLORS = {
 
 // COMPLETE mapping of ALL countries to continents
 const COUNTRY_TO_CONTINENT: Record<string, keyof typeof RISIKO_COLORS> = {
-    // ========== EUROPE (Blue) ==========
     "Albania": "EUROPE", "Andorra": "EUROPE", "Austria": "EUROPE", "Belarus": "EUROPE",
     "Belgium": "EUROPE", "Bosnia and Herzegovina": "EUROPE", "Bosnia and Herz.": "EUROPE",
     "Bulgaria": "EUROPE", "Croatia": "EUROPE", "Cyprus": "EUROPE", "Czech Republic": "EUROPE",
@@ -33,8 +33,6 @@ const COUNTRY_TO_CONTINENT: Record<string, keyof typeof RISIKO_COLORS> = {
     "San Marino": "EUROPE", "Serbia": "EUROPE", "Slovakia": "EUROPE", "Slovenia": "EUROPE",
     "Spain": "EUROPE", "Sweden": "EUROPE", "Switzerland": "EUROPE", "Ukraine": "EUROPE",
     "United Kingdom": "EUROPE", "Vatican City": "EUROPE",
-
-    // ========== ASIA (Green) ==========
     "Afghanistan": "ASIA", "Armenia": "ASIA", "Azerbaijan": "ASIA", "Bahrain": "ASIA",
     "Bangladesh": "ASIA", "Bhutan": "ASIA", "Brunei": "ASIA", "Cambodia": "ASIA",
     "China": "ASIA", "Georgia": "ASIA", "India": "ASIA", "Indonesia": "ASIA",
@@ -48,8 +46,6 @@ const COUNTRY_TO_CONTINENT: Record<string, keyof typeof RISIKO_COLORS> = {
     "Taiwan": "ASIA", "Tajikistan": "ASIA", "Thailand": "ASIA", "Timor-Leste": "ASIA",
     "Turkey": "ASIA", "Turkmenistan": "ASIA", "United Arab Emirates": "ASIA",
     "Uzbekistan": "ASIA", "Vietnam": "ASIA", "Yemen": "ASIA",
-
-    // ========== NORTH AMERICA (Orange) ==========
     "Antigua and Barbuda": "NORTH_AMERICA", "Bahamas": "NORTH_AMERICA", "Barbados": "NORTH_AMERICA",
     "Belize": "NORTH_AMERICA", "Canada": "NORTH_AMERICA", "Costa Rica": "NORTH_AMERICA",
     "Cuba": "NORTH_AMERICA", "Dominica": "NORTH_AMERICA", "Dominican Republic": "NORTH_AMERICA",
@@ -60,16 +56,12 @@ const COUNTRY_TO_CONTINENT: Record<string, keyof typeof RISIKO_COLORS> = {
     "Saint Kitts and Nevis": "NORTH_AMERICA", "Saint Lucia": "NORTH_AMERICA",
     "Saint Vincent and the Grenadines": "NORTH_AMERICA", "Trinidad and Tobago": "NORTH_AMERICA",
     "United States": "NORTH_AMERICA", "United States of America": "NORTH_AMERICA",
-
-    // ========== SOUTH AMERICA (Light Blue) ==========
     "Argentina": "SOUTH_AMERICA", "Bolivia": "SOUTH_AMERICA", "Brazil": "SOUTH_AMERICA",
     "Chile": "SOUTH_AMERICA", "Colombia": "SOUTH_AMERICA", "Ecuador": "SOUTH_AMERICA",
     "Falkland Islands": "SOUTH_AMERICA", "Falkland Is.": "SOUTH_AMERICA",
     "French Guiana": "SOUTH_AMERICA", "Guyana": "SOUTH_AMERICA", "Paraguay": "SOUTH_AMERICA",
     "Peru": "SOUTH_AMERICA", "Suriname": "SOUTH_AMERICA", "Uruguay": "SOUTH_AMERICA",
     "Venezuela": "SOUTH_AMERICA",
-
-    // ========== AFRICA (Brown) ==========
     "Algeria": "AFRICA", "Angola": "AFRICA", "Benin": "AFRICA", "Botswana": "AFRICA",
     "Burkina Faso": "AFRICA", "Burundi": "AFRICA", "Cameroon": "AFRICA", "Cape Verde": "AFRICA",
     "Central African Republic": "AFRICA", "Central African Rep.": "AFRICA", "Chad": "AFRICA",
@@ -88,8 +80,6 @@ const COUNTRY_TO_CONTINENT: Record<string, keyof typeof RISIKO_COLORS> = {
     "Sudan": "AFRICA", "Tanzania": "AFRICA", "Togo": "AFRICA", "Tunisia": "AFRICA",
     "Uganda": "AFRICA", "W. Sahara": "AFRICA", "Western Sahara": "AFRICA", "Zambia": "AFRICA",
     "Zimbabwe": "AFRICA",
-
-    // ========== OCEANIA (Purple) ==========
     "Australia": "OCEANIA", "Fiji": "OCEANIA", "Kiribati": "OCEANIA",
     "Marshall Islands": "OCEANIA", "Micronesia": "OCEANIA", "Nauru": "OCEANIA",
     "New Caledonia": "OCEANIA", "New Zealand": "OCEANIA", "Palau": "OCEANIA",
@@ -121,7 +111,7 @@ function getContinentByCoordinates(lat: number, lon: number): keyof typeof RISIK
 interface ConflictEvent {
     id: string;
     source: string;
-    eventType: "conflict" | "protest" | "cyber" | "terrorism";
+    eventType: "conflict" | "protest" | "cyber" | "terrorism" | "civil_war";
     lat: number;
     lon: number;
     actor1Name: string;
@@ -135,6 +125,8 @@ interface ConflictEvent {
     casualties: number | null;
     color: string;
     label: string;
+    duration?: string;
+    intensity?: string;
 }
 
 interface MapProps {
@@ -248,14 +240,15 @@ export function RiskMap({ conflicts, center, zoom, selectedConflictId }: MapProp
         }
     };
 
-    // Get event type emoji
-    const getEventEmoji = (type: string) => {
+    // Get event icon
+    const getEventIcon = (type: string) => {
         switch (type) {
-            case "conflict": return "⚔️";
-            case "protest": return "✊";
-            case "cyber": return "💻";
-            case "terrorism": return "💀";
-            default: return "⚠️";
+            case "conflict": return Swords;
+            case "protest": return Megaphone;
+            case "cyber": return Zap;
+            case "terrorism": return Skull;
+            case "civil_war": return Flame;
+            default: return AlertTriangle;
         }
     };
 
@@ -351,7 +344,10 @@ export function RiskMap({ conflicts, center, zoom, selectedConflictId }: MapProp
                                 <div className="p-3 border-b border-white/10 bg-black/30">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg">{getEventEmoji(selectedEvent.event.eventType)}</span>
+                                            {(() => {
+                                                const Icon = getEventIcon(selectedEvent.event.eventType);
+                                                return <Icon className="w-5 h-5" style={{ color: selectedEvent.event.color }} />;
+                                            })()}
                                             <div>
                                                 <h3 className="font-bold text-sm" style={{ color: selectedEvent.event.color }}>
                                                     {selectedEvent.event.label}
@@ -381,19 +377,36 @@ export function RiskMap({ conflicts, center, zoom, selectedConflictId }: MapProp
                                             <span className="text-gray-400">Time:</span>
                                             <span className="text-white">{formatDate(selectedEvent.event.date)}</span>
                                         </div>
+                                        {selectedEvent.event.duration && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-400">Duration:</span>
+                                                <span className="text-yellow-400 font-medium">{selectedEvent.event.duration}</span>
+                                            </div>
+                                        )}
+                                        {selectedEvent.event.intensity && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-400">Intensity:</span>
+                                                <span className={`${selectedEvent.event.intensity.includes("High") ? "text-red-500 font-bold animate-pulse" : "text-gray-300"}`}>
+                                                    {selectedEvent.event.intensity}
+                                                </span>
+                                            </div>
+                                        )}
                                         {selectedEvent.event.casualties !== null && (
                                             <div className="flex justify-between">
                                                 <span className="text-gray-400">Casualties:</span>
                                                 <span className="text-red-400 font-medium">{selectedEvent.event.casualties}</span>
                                             </div>
                                         )}
+                                        <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-gray-500">
+                                            Source: {selectedEvent.event.source || "GDELT Network"}
+                                        </div>
                                         {selectedEvent.event.sourceUrl && (
                                             <a
                                                 href={selectedEvent.event.sourceUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="mt-2 block text-blue-400 hover:text-blue-300 text-[10px]"
-                                            >→ Read source</a>
+                                                className="block text-blue-400 hover:text-blue-300 text-[10px]"
+                                            >→ Read full report</a>
                                         )}
                                     </div>
                                 </div>

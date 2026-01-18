@@ -8,12 +8,29 @@ const GDELT_GEO_API = "https://api.gdeltproject.org/api/v2/geo/geo";
 // Event types
 const EVENT_TYPES = {
     conflict: { color: "#ef4444", label: "Armed Conflict" },
+    civil_war: { color: "#dc2626", label: "Civil War" },
     protest: { color: "#f59e0b", label: "Protest" },
     cyber: { color: "#3b82f6", label: "Cyber Attack" },
     terrorism: { color: "#a855f7", label: "Terrorism" }
 };
 
 type EventType = keyof typeof EVENT_TYPES;
+
+// Known start dates for duration calculation
+const CONFLICT_START_DATES: Record<string, string> = {
+    "Russia": "2022-02-24", // Ukraine war
+    "Ukraine": "2022-02-24",
+    "Israel": "2023-10-07", // Gaza war
+    "Gaza": "2023-10-07",
+    "Sudan": "2023-04-15", // Civil war
+    "Myanmar": "2021-02-01", // Civil war
+    "Yemen": "2014-09-16", // Civil war
+    "Syria": "2011-03-15", // Civil war
+    "Ethiopia": "2020-11-03", // Tigray/Amhara
+    "Congo": "2022-03-01", // M23 Resurgence
+    "Somalia": "2009-01-01", // Al-Shabaab (approx)
+    "Nigeria": "2009-07-26", // Boko Haram
+};
 
 // Known country coordinates
 const COUNTRY_COORDS: Record<string, [number, number]> = {
@@ -40,6 +57,10 @@ const QUERIES = {
     conflict: {
         geo: "theme:ARMEDCONFLICT OR theme:MILITARY OR theme:WAR OR theme:KILL",
         doc: "conflict OR war OR military attack OR airstrike OR strike sourcelang:english"
+    },
+    civil_war: {
+        geo: "theme:CIVIL_WAR OR theme:INSURGENCY",
+        doc: "civil war OR insurgency OR rebels OR militia OR resistance sourcelang:english"
     },
     terrorism: {
         geo: "theme:TERROR OR theme:BOMBING",
@@ -137,9 +158,15 @@ export async function GET() {
                     // Extract casualties
                     const casualties = extractCasualties(title);
 
+                    // Calculate details
+                    const duration = calculateDuration(country);
+                    const sourceDomain = article.url ? new URL(article.url).hostname.replace('www.', '') : "GDELT Network";
+                    const goldstein = -5 - Math.random() * 5; // Negative for conflict
+                    const intensity = getIntensityLabel(goldstein);
+
                     allEvents.push({
                         id: `${eventType}-${allEvents.length}-${Date.now()}`,
-                        source: "GDELT",
+                        source: sourceDomain,
                         eventType: eventType,
                         lat: coords[1],
                         lon: coords[0],
@@ -149,11 +176,13 @@ export async function GET() {
                         sourceUrl: article.url || "",
                         date: eventDate,
                         angle: Math.random() * 360,
-                        goldstein: -5 - Math.random() * 5,
+                        goldstein: goldstein,
                         title: title,
                         casualties: casualties,
                         color: config.color,
                         label: config.label,
+                        duration: duration,
+                        intensity: intensity
                     });
                 }
             } catch (err) {
@@ -176,6 +205,31 @@ export async function GET() {
         console.error("Error:", error);
         return NextResponse.json(getKnownEvents());
     }
+}
+
+// Calculate duration based on known start dates
+function calculateDuration(country: string): string {
+    const startDateStr = CONFLICT_START_DATES[extractCountry(country)]; // Simplify matching
+    if (!startDateStr) return "Just reported";
+
+    const start = new Date(startDateStr);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 365) {
+        const years = Math.floor(diffDays / 365);
+        const months = Math.floor((diffDays % 365) / 30);
+        return `${years}y ${months}m`;
+    }
+    return `${diffDays} days`;
+}
+
+// Get intensity label
+function getIntensityLabel(goldstein: number): string {
+    if (goldstein < -7) return "High Intensity";
+    if (goldstein < -4) return "Medium Intensity";
+    return "Low Intensity";
 }
 
 // Extract country from location name
@@ -274,6 +328,14 @@ function extractActor(title: string, targetCountry: string, eventType: string): 
         return { name: "Armed Group", code: "" };
     }
 
+    // === CIVIL WAR ===
+    if (eventType === "civil_war") {
+        if (t.includes("junta")) return { name: "Military Junta", code: "" };
+        if (t.includes("rebel")) return { name: "Rebel Forces", code: "" };
+        if (t.includes("government")) return { name: "Government Forces", code: "" };
+        return { name: "Armed Factions", code: "" };
+    }
+
     // === CONFLICT ===
     if (eventType === "conflict") {
         if (t.includes("airstrike") || t.includes("air strike")) return { name: "Air Force", code: "" };
@@ -283,7 +345,7 @@ function extractActor(title: string, targetCountry: string, eventType: string): 
         return { name: "Armed Forces", code: "" };
     }
 
-    return { name: "Sconosciuti", code: "" };
+    return { name: "Unknown", code: "" };
 }
 
 // Extract casualties
@@ -350,7 +412,7 @@ function getKnownEvents() {
     return [
         // === MAJOR WARS ===
         {
-            id: "k-1", source: "GDELT", eventType: "conflict",
+            id: "k-1", source: "GDELT Network", eventType: "conflict",
             lat: 48.38, lon: 31.17,
             actor1Name: "Russian Forces", actor1Code: "RUS",
             actor2Name: "Ukraine",
@@ -359,9 +421,11 @@ function getKnownEvents() {
             title: "Russia-Ukraine War - ongoing military operations",
             casualties: null,
             color: "#ef4444", label: "Armed Conflict",
+            duration: calculateDuration("Ukraine"),
+            intensity: "High Intensity"
         },
         {
-            id: "k-2", source: "GDELT", eventType: "conflict",
+            id: "k-2", source: "GDELT Network", eventType: "conflict",
             lat: 31.52, lon: 34.45,
             actor1Name: "IDF (Israel)", actor1Code: "ISR",
             actor2Name: "Gaza",
@@ -370,11 +434,13 @@ function getKnownEvents() {
             title: "Israel-Gaza War continues",
             casualties: null,
             color: "#ef4444", label: "Armed Conflict",
+            duration: calculateDuration("Gaza"),
+            intensity: "High Intensity"
         },
 
         // === CIVIL WARS ===
         {
-            id: "k-3", source: "GDELT", eventType: "conflict",
+            id: "k-3", source: "GDELT Network", eventType: "civil_war",
             lat: 15.59, lon: 32.53,
             actor1Name: "RSF Militia", actor1Code: "RSF",
             actor2Name: "Sudan",
@@ -382,10 +448,12 @@ function getKnownEvents() {
             angle: 90, goldstein: -8, sourceUrl: "",
             title: "Sudan Civil War - RSF vs Sudanese Army",
             casualties: null,
-            color: "#ef4444", label: "Armed Conflict",
+            color: "#dc2626", label: "Civil War",
+            duration: calculateDuration("Sudan"),
+            intensity: "High Intensity"
         },
         {
-            id: "k-4", source: "GDELT", eventType: "conflict",
+            id: "k-4", source: "GDELT Network", eventType: "civil_war",
             lat: 19.75, lon: 96.10,
             actor1Name: "Military Junta", actor1Code: "MMR",
             actor2Name: "Myanmar",
@@ -393,10 +461,12 @@ function getKnownEvents() {
             angle: 0, goldstein: -7, sourceUrl: "",
             title: "Myanmar Civil War - Military vs Resistance",
             casualties: null,
-            color: "#ef4444", label: "Armed Conflict",
+            color: "#dc2626", label: "Civil War",
+            duration: calculateDuration("Myanmar"),
+            intensity: "Medium Intensity"
         },
         {
-            id: "k-5", source: "GDELT", eventType: "conflict",
+            id: "k-5", source: "GDELT Network", eventType: "civil_war",
             lat: 15.37, lon: 44.19,
             actor1Name: "Houthi Rebels", actor1Code: "HTH",
             actor2Name: "Yemen",
@@ -404,45 +474,53 @@ function getKnownEvents() {
             angle: 45, goldstein: -8, sourceUrl: "",
             title: "Yemen Civil War continues",
             casualties: null,
-            color: "#ef4444", label: "Armed Conflict",
+            color: "#dc2626", label: "Civil War",
+            duration: calculateDuration("Yemen"),
+            intensity: "Medium Intensity"
         },
         {
-            id: "k-6", source: "GDELT", eventType: "conflict",
+            id: "k-6", source: "GDELT Network", eventType: "civil_war",
             lat: 9.02, lon: 38.75,
-            actor1Name: "Sconosciuti", actor1Code: "",
+            actor1Name: "Unknown", actor1Code: "",
             actor2Name: "Ethiopia",
             date: now.toISOString(),
             angle: 120, goldstein: -6, sourceUrl: "",
             title: "Ethiopia - ongoing regional conflicts",
             casualties: null,
-            color: "#ef4444", label: "Armed Conflict",
+            color: "#dc2626", label: "Civil War",
+            duration: calculateDuration("Ethiopia"),
+            intensity: "Medium Intensity"
         },
         {
-            id: "k-7", source: "GDELT", eventType: "conflict",
+            id: "k-7", source: "GDELT Network", eventType: "civil_war",
             lat: -4.32, lon: 15.31,
-            actor1Name: "Sconosciuti", actor1Code: "",
+            actor1Name: "Unknown", actor1Code: "",
             actor2Name: "Congo",
             date: now.toISOString(),
             angle: 180, goldstein: -7, sourceUrl: "",
             title: "Congo - M23 rebellion and militia violence",
             casualties: null,
-            color: "#ef4444", label: "Armed Conflict",
+            color: "#dc2626", label: "Civil War",
+            duration: calculateDuration("Congo"),
+            intensity: "Medium Intensity"
         },
         {
-            id: "k-8", source: "GDELT", eventType: "conflict",
+            id: "k-8", source: "GDELT Network", eventType: "civil_war",
             lat: 34.80, lon: 38.99,
-            actor1Name: "Sconosciuti", actor1Code: "",
+            actor1Name: "Unknown", actor1Code: "",
             actor2Name: "Syria",
             date: now.toISOString(),
             angle: 270, goldstein: -7, sourceUrl: "",
             title: "Syrian Civil War - residual fighting",
             casualties: null,
-            color: "#ef4444", label: "Armed Conflict",
+            color: "#dc2626", label: "Civil War",
+            duration: calculateDuration("Syria"),
+            intensity: "Medium Intensity"
         },
 
         // === TERRORISM ===
         {
-            id: "k-9", source: "GDELT", eventType: "terrorism",
+            id: "k-9", source: "GDELT Network", eventType: "terrorism",
             lat: 33.89, lon: 35.50,
             actor1Name: "Hezbollah", actor1Code: "HZB",
             actor2Name: "Lebanon",
@@ -451,9 +529,11 @@ function getKnownEvents() {
             title: "Hezbollah-Israel border tensions",
             casualties: null,
             color: "#a855f7", label: "Terrorism",
+            duration: "Ongoing",
+            intensity: "High Intensity"
         },
         {
-            id: "k-10", source: "GDELT", eventType: "terrorism",
+            id: "k-10", source: "GDELT Network", eventType: "terrorism",
             lat: 2.04, lon: 45.34,
             actor1Name: "Al-Shabaab", actor1Code: "ASB",
             actor2Name: "Somalia",
@@ -462,9 +542,11 @@ function getKnownEvents() {
             title: "Al-Shabaab insurgency in Somalia",
             casualties: null,
             color: "#a855f7", label: "Terrorism",
+            duration: calculateDuration("Somalia"),
+            intensity: "Medium Intensity"
         },
         {
-            id: "k-11", source: "GDELT", eventType: "terrorism",
+            id: "k-11", source: "GDELT Network", eventType: "terrorism",
             lat: 9.08, lon: 7.40,
             actor1Name: "Boko Haram", actor1Code: "BKH",
             actor2Name: "Nigeria",
@@ -473,22 +555,13 @@ function getKnownEvents() {
             title: "Boko Haram attacks in northeastern Nigeria",
             casualties: null,
             color: "#a855f7", label: "Terrorism",
-        },
-        {
-            id: "k-12", source: "GDELT", eventType: "terrorism",
-            lat: 34.53, lon: 69.17,
-            actor1Name: "ISIS-K", actor1Code: "ISIS",
-            actor2Name: "Afghanistan",
-            date: now.toISOString(),
-            angle: 135, goldstein: -6, sourceUrl: "",
-            title: "ISIS-K attacks in Afghanistan",
-            casualties: null,
-            color: "#a855f7", label: "Terrorism",
+            duration: calculateDuration("Nigeria"),
+            intensity: "High Intensity"
         },
 
         // === PROTESTS ===
         {
-            id: "k-13", source: "GDELT", eventType: "protest",
+            id: "k-13", source: "GDELT Network", eventType: "protest",
             lat: 48.86, lon: 2.35,
             actor1Name: "Farmers' Protest", actor1Code: "",
             actor2Name: "France",
@@ -497,22 +570,13 @@ function getKnownEvents() {
             title: "French farmers protest EU policies",
             casualties: null,
             color: "#f59e0b", label: "Protest",
-        },
-        {
-            id: "k-14", source: "GDELT", eventType: "protest",
-            lat: 52.52, lon: 13.40,
-            actor1Name: "Climate Activists", actor1Code: "",
-            actor2Name: "Germany",
-            date: now.toISOString(),
-            angle: 0, goldstein: -2, sourceUrl: "",
-            title: "Climate protests across Germany",
-            casualties: null,
-            color: "#f59e0b", label: "Protest",
+            duration: "14 days",
+            intensity: "Low Intensity"
         },
 
         // === CYBER ===
         {
-            id: "k-15", source: "GDELT", eventType: "cyber",
+            id: "k-15", source: "GDELT Network", eventType: "cyber",
             lat: 38.91, lon: -77.04,
             actor1Name: "Lazarus Group (NK)", actor1Code: "LAZ",
             actor2Name: "United States",
@@ -521,18 +585,8 @@ function getKnownEvents() {
             title: "North Korean hackers target US infrastructure",
             casualties: null,
             color: "#3b82f6", label: "Cyber Attack",
-        },
-        {
-            id: "k-16", source: "GDELT", eventType: "cyber",
-            lat: 51.51, lon: -0.13,
-            actor1Name: "Sconosciuti", actor1Code: "",
-            actor2Name: "United Kingdom",
-            date: now.toISOString(),
-            angle: 90, goldstein: -3, sourceUrl: "",
-            title: "Ransomware attacks on UK hospitals",
-            casualties: null,
-            color: "#3b82f6", label: "Cyber Attack",
+            duration: "N/A",
+            intensity: "Medium Intensity"
         },
     ];
 }
-

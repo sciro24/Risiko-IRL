@@ -3,7 +3,7 @@ import axios from "axios";
 export interface ConflictEvent {
     id: string;
     source: string;
-    eventType: "conflict" | "protest" | "cyber" | "terrorism";
+    eventType: "conflict" | "protest" | "cyber" | "terrorism" | "civil_war";
     lat: number;
     lon: number;
     actor1Name: string;
@@ -17,6 +17,8 @@ export interface ConflictEvent {
     casualties: number | null;
     color: string;
     label: string;
+    duration?: string;
+    intensity?: string;
 }
 
 export async function fetchConflictData(): Promise<ConflictEvent[]> {

@@ -3,14 +3,15 @@
 import { useEffect, useState, useMemo } from "react"
 import { RiskMap } from "@/components/map/RiskMap"
 import { fetchConflictData, type ConflictEvent } from "@/lib/gdelt"
-import { RefreshCw, AlertTriangle, Clock, MapPin, ExternalLink, Filter, SortAsc } from "lucide-react"
+import { RefreshCw, AlertTriangle, Clock, MapPin, ExternalLink, Filter, SortAsc, Swords, Megaphone, Zap, Skull, ShieldAlert, Flame } from "lucide-react"
 
 // Event type configuration
 const EVENT_TYPES = {
-  conflict: { emoji: "⚔️", label: "Conflicts", color: "#ef4444" },
-  protest: { emoji: "✊", label: "Protests", color: "#f59e0b" },
-  cyber: { emoji: "💻", label: "Cyber Attacks", color: "#3b82f6" },
-  terrorism: { emoji: "💀", label: "Terrorism", color: "#a855f7" },
+  conflict: { Icon: Swords, label: "Conflicts", color: "#ef4444" },
+  civil_war: { Icon: Flame, label: "Civil War", color: "#dc2626" },
+  protest: { Icon: Megaphone, label: "Protests", color: "#f59e0b" },
+  cyber: { Icon: Zap, label: "Cyber Attacks", color: "#3b82f6" },
+  terrorism: { Icon: Skull, label: "Terrorism", color: "#a855f7" },
 } as const;
 
 type EventType = keyof typeof EVENT_TYPES;
@@ -53,7 +54,7 @@ export default function Home() {
     if (sortBy === "date") {
       filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } else if (sortBy === "type") {
-      const typeOrder = ["conflict", "terrorism", "cyber", "protest"];
+      const typeOrder = ["conflict", "civil_war", "terrorism", "cyber", "protest"];
       filtered.sort((a, b) => typeOrder.indexOf(a.eventType) - typeOrder.indexOf(b.eventType));
     }
 
@@ -79,9 +80,9 @@ export default function Home() {
     })
   }
 
-  // Get event emoji
-  const getEventEmoji = (type: string) => {
-    return EVENT_TYPES[type as EventType]?.emoji || "⚠️";
+  // Get event icon
+  const getEventIcon = (type: string) => {
+    return EVENT_TYPES[type as EventType]?.Icon || AlertTriangle;
   }
 
   // Handle click
@@ -109,14 +110,17 @@ export default function Home() {
         {/* Stats Bar */}
         <div className="px-4 py-3 border-b border-border bg-black/30 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {(["conflict", "protest", "cyber", "terrorism"] as EventType[]).map(type => (
-              <div key={type} className="text-center">
-                <div className="text-sm font-bold" style={{ color: EVENT_TYPES[type].color }}>
-                  {eventCounts[type] || 0}
+            {(["conflict", "civil_war", "protest", "cyber", "terrorism"] as EventType[]).map(type => {
+              const Icon = EVENT_TYPES[type].Icon;
+              return (
+                <div key={type} className="text-center flex flex-col items-center">
+                  <div className="text-sm font-bold" style={{ color: EVENT_TYPES[type].color }}>
+                    {eventCounts[type] || 0}
+                  </div>
+                  <Icon className="w-3 h-3 opacity-70" />
                 </div>
-                <div className="text-[8px] text-gray-500">{EVENT_TYPES[type].emoji}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button
@@ -148,14 +152,17 @@ export default function Home() {
             >
               All
             </button>
-            {(["conflict", "protest", "cyber", "terrorism"] as EventType[]).map(type => (
+            {(["conflict", "civil_war", "protest", "cyber", "terrorism"] as EventType[]).map(type => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
                 className={`px-1.5 py-1 text-[10px] rounded border ${filterType === type ? "bg-white/20 border-white/30" : "bg-white/5 border-white/10"}`}
                 style={{ color: filterType === type ? EVENT_TYPES[type].color : "#6b7280" }}
               >
-                {EVENT_TYPES[type].emoji}
+                {(() => {
+                  const Icon = EVENT_TYPES[type].Icon;
+                  return <Icon className="w-3 h-3" />;
+                })()}
               </button>
             ))}
           </div>
@@ -192,7 +199,12 @@ export default function Home() {
                   {/* Header Row */}
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm">{getEventEmoji(c.eventType)}</span>
+                      <div className="p-1 rounded bg-white/5 border border-white/10">
+                        {(() => {
+                          const Icon = getEventIcon(c.eventType);
+                          return <Icon className="w-3 h-3" style={{ color: c.color }} />;
+                        })()}
+                      </div>
                       <span className="font-bold text-white text-xs truncate max-w-[160px]">
                         {c.actor2Name || "Unknown Location"}
                       </span>
