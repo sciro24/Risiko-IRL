@@ -37,11 +37,6 @@ export default function Home() {
   }
 
   useEffect(() => {
-    // Check screen size for sidebar
-    if (window.innerWidth < 768) {
-      setIsSidebarOpen(false)
-    }
-
     // Initial fetch
     loadData()
     const interval = setInterval(loadData, 5 * 60 * 1000)
@@ -103,6 +98,11 @@ export default function Home() {
     setMapZoom(4)
     setSelectedConflictId(conflict.id)
     setTimeout(() => setSelectedConflictId(null), 3000)
+
+    // On mobile, close sidebar when clicking an event to show map
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(false)
+    }
   }
 
   return (
@@ -345,7 +345,7 @@ export default function Home() {
         {/* Sidebar Toggle Button */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="absolute top-4 left-4 z-50 p-2 bg-black/80 backdrop-blur text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors shadow-lg"
+          className={`absolute top-4 left-4 z-50 p-2 bg-black/80 backdrop-blur text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors shadow-lg ${isSidebarOpen ? 'hidden md:block' : 'block'}`}
           title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
         >
           {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
