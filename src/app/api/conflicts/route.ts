@@ -49,7 +49,23 @@ const COUNTRY_COORDS: Record<string, [number, number]> = {
     "Mali": [12.64, -8.00], "Niger": [13.51, 2.11], "Burkina Faso": [12.37, -1.52],
     "Cameroon": [3.87, 11.52], "Chad": [12.13, 15.05], "Algeria": [36.75, 3.06],
     "Morocco": [33.97, -6.85], "Tunisia": [36.80, 10.18], "Poland": [52.23, 21.01],
-    "Canada": [45.42, -75.69], "Australia": [-35.28, 149.13], "Spain": [40.42, -3.70],
+};
+
+// Estimated TOTAL casualties for known conflict zones
+const CASUALTY_ESTIMATES: Record<string, string> = {
+    "Ukraine": "500k*",
+    "Russia": "500k*", // Related to Ukraine war
+    "Israel": "45k*",
+    "Gaza": "45k*",
+    "Palestine": "45k*",
+    "Sudan": "150k*",
+    "Yemen": "377k*",
+    "Ethiopia": "600k*",
+    "Syria": "600k*",
+    "Myanmar": "50k*",
+    "Burma": "50k*",
+    "Congo": "10k*",
+    "Democratic Republic of the Congo": "10k*"
 };
 
 // GDELT query configurations for each event type
@@ -153,10 +169,19 @@ export async function GET() {
 
                     // Extract actor from article title
                     const title = article.title || locationName;
+
+                    // Determine Casualty Count:
+                    // 1. Check if it's a known conflict zone with a total estimate
+                    // 2. If not, try to extract from title
+                    // 3. Default to null (will show as Unknown/0)
+                    let casualties: string | number | null = CASUALTY_ESTIMATES[country] || null;
+
+                    if (!casualties) {
+                        casualties = extractCasualties(title);
+                    }
+
                     const actorInfo = extractActor(title, country, eventType);
 
-                    // Extract casualties
-                    const casualties = extractCasualties(title);
 
                     // Calculate details
                     const duration = calculateDuration(country);
@@ -525,6 +550,9 @@ function parseGdeltDate(dateStr: string): string {
     }
 }
 
+// Helper to generate realistic daily fluctuations (unused now but kept if needed)
+const getDailyCasualties = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
 // Known ongoing events - EXPANDED with civil wars and long-standing conflicts
 function getKnownEvents() {
     const now = new Date();
@@ -538,9 +566,9 @@ function getKnownEvents() {
             actor2Name: "Ukraine",
             date: now.toISOString(),
             startDate: CONFLICT_START_DATES["Ukraine"],
-            angle: 270, goldstein: -9, sourceUrl: "",
+            angle: 270, goldstein: -9, sourceUrl: "https://liveuamap.com",
             title: "Russia-Ukraine War - ongoing military operations",
-            casualties: null,
+            casualties: "500k*", // Total estimated casualties (dead/wounded both sides)
             color: "#ef4444", label: "Armed Conflict",
             duration: calculateDuration("Ukraine"),
             intensity: "High Intensity"
@@ -552,9 +580,9 @@ function getKnownEvents() {
             actor2Name: "Gaza",
             date: now.toISOString(),
             startDate: CONFLICT_START_DATES["Gaza"],
-            angle: 180, goldstein: -9, sourceUrl: "",
+            angle: 180, goldstein: -9, sourceUrl: "https://liveuamap.com/middleeast",
             title: "Israel-Gaza War continues",
-            casualties: null,
+            casualties: "45k*", // Total estimated deaths
             color: "#ef4444", label: "Armed Conflict",
             duration: calculateDuration("Gaza"),
             intensity: "High Intensity"
@@ -570,7 +598,7 @@ function getKnownEvents() {
             startDate: CONFLICT_START_DATES["Sudan"],
             angle: 90, goldstein: -8, sourceUrl: "",
             title: "Sudan Civil War - RSF vs Sudanese Army",
-            casualties: null,
+            casualties: "150k*",
             color: "#dc2626", label: "Civil War",
             duration: calculateDuration("Sudan"),
             intensity: "High Intensity"
@@ -584,7 +612,7 @@ function getKnownEvents() {
             startDate: CONFLICT_START_DATES["Myanmar"],
             angle: 0, goldstein: -7, sourceUrl: "",
             title: "Myanmar Civil War - Military vs Resistance",
-            casualties: null,
+            casualties: "50k*",
             color: "#dc2626", label: "Civil War",
             duration: calculateDuration("Myanmar"),
             intensity: "Medium Intensity"
@@ -598,7 +626,7 @@ function getKnownEvents() {
             startDate: CONFLICT_START_DATES["Yemen"],
             angle: 45, goldstein: -8, sourceUrl: "",
             title: "Yemen Civil War continues",
-            casualties: null,
+            casualties: "377k*", // UN estimate total direct/indirect
             color: "#dc2626", label: "Civil War",
             duration: calculateDuration("Yemen"),
             intensity: "Medium Intensity"
@@ -612,7 +640,7 @@ function getKnownEvents() {
             startDate: CONFLICT_START_DATES["Ethiopia"],
             angle: 120, goldstein: -6, sourceUrl: "",
             title: "Ethiopia - ongoing regional conflicts",
-            casualties: null,
+            casualties: "600k*",
             color: "#dc2626", label: "Civil War",
             duration: calculateDuration("Ethiopia"),
             intensity: "Medium Intensity"
@@ -626,7 +654,7 @@ function getKnownEvents() {
             startDate: CONFLICT_START_DATES["Congo"],
             angle: 180, goldstein: -7, sourceUrl: "",
             title: "Congo - M23 rebellion and militia violence",
-            casualties: null,
+            casualties: "Unknown",
             color: "#dc2626", label: "Civil War",
             duration: calculateDuration("Congo"),
             intensity: "Medium Intensity"
@@ -640,7 +668,7 @@ function getKnownEvents() {
             startDate: CONFLICT_START_DATES["Syria"],
             angle: 270, goldstein: -7, sourceUrl: "",
             title: "Syrian Civil War - residual fighting",
-            casualties: null,
+            casualties: "600k*",
             color: "#dc2626", label: "Civil War",
             duration: calculateDuration("Syria"),
             intensity: "Medium Intensity"

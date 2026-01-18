@@ -15,7 +15,7 @@ export interface ConflictEvent {
     startDate?: string;
     angle: number;
     title: string;
-    casualties: number | null;
+    casualties: string | number | null;
     color: string;
     label: string;
     duration?: string;
