@@ -106,17 +106,36 @@ export default function Home() {
   }
 
   return (
-    <main className="flex h-screen w-full bg-background text-foreground flex-col md:flex-row overflow-hidden">
-      {/* Sidebar */}
-      {/* Sidebar - Collapsible */}
+    <main className="relative flex h-screen w-full bg-background text-foreground overflow-hidden">
+      {/* Sidebar - Collapsible
+          Mobile: Fixed overlay (drawer)
+          Desktop: Relative flex item (pushes content)
+      */}
       <aside
-        className={`${isSidebarOpen ? 'w-full md:w-96 translate-x-0' : 'w-0 -translate-x-full md:translate-x-0 md:w-0 opacity-0 overflow-hidden'} bg-card border-r border-border flex flex-col z-20 shadow-xl transition-all duration-300 ease-in-out`}
+        className={`
+          flex flex-col border-r border-border bg-card shadow-xl z-40
+          transition-all duration-300 ease-in-out
+          fixed inset-y-0 left-0
+          md:relative
+          ${isSidebarOpen
+            ? 'translate-x-0 w-[85vw] md:w-96 md:translate-x-0'
+            : '-translate-x-full md:translate-x-0 md:w-0 md:opacity-0 md:overflow-hidden'}
+        `}
       >
         {/* Header */}
         <div className="p-6 border-b border-border bg-gradient-to-r from-red-950/30 to-transparent">
-          <h1 className="text-2xl font-black tracking-tighter text-red-500 flex items-center gap-2">
-            RISIKO <span className="text-white">IRL</span>
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-black tracking-tighter text-red-500 flex items-center gap-2">
+              RISIKO <span className="text-white">IRL</span>
+            </h1>
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden text-gray-400 hover:text-white"
+            >
+              <div className="text-2xl">×</div>
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
             Real-time Global Event Monitor
           </p>
@@ -311,6 +330,14 @@ export default function Home() {
           </div>
         </div>
       </aside>
+
+      {/* Mobile Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Map Area */}
       <section className="flex-1 relative bg-black w-full h-full overflow-hidden">
