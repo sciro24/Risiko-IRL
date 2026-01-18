@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { RiskMap } from "@/components/map/RiskMap"
 import { fetchConflictData, type ConflictEvent } from "@/lib/gdelt"
-import { RefreshCw, AlertTriangle, Clock, MapPin, ExternalLink, Filter, SortAsc, Swords, Megaphone, Zap, Skull, ShieldAlert, Flame } from "lucide-react"
+import { RefreshCw, AlertTriangle, Clock, MapPin, ExternalLink, Filter, SortAsc, Swords, Megaphone, Zap, Skull, ShieldAlert, Flame, ChevronLeft, ChevronRight } from "lucide-react"
 
 // Event type configuration
 const EVENT_TYPES = {
@@ -26,6 +26,7 @@ export default function Home() {
   const [selectedConflictId, setSelectedConflictId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortType>("date")
   const [filterType, setFilterType] = useState<EventType | "all">("all")
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const loadData = async () => {
     setLoading(true)
@@ -102,7 +103,10 @@ export default function Home() {
   return (
     <main className="flex h-screen w-full bg-background text-foreground flex-col md:flex-row overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-full md:w-96 bg-card border-r border-border flex flex-col z-20 shadow-xl">
+      {/* Sidebar - Collapsible */}
+      <aside
+        className={`${isSidebarOpen ? 'w-full md:w-96 translate-x-0' : 'w-0 -translate-x-full md:translate-x-0 md:w-0 opacity-0 overflow-hidden'} bg-card border-r border-border flex flex-col z-20 shadow-xl transition-all duration-300 ease-in-out`}
+      >
         {/* Header */}
         <div className="p-6 border-b border-border bg-gradient-to-r from-red-950/30 to-transparent">
           <h1 className="text-2xl font-black tracking-tighter text-red-500 flex items-center gap-2">
@@ -304,7 +308,17 @@ export default function Home() {
       </aside>
 
       {/* Main Map Area */}
-      <section className="flex-1 relative bg-black">
+      <section className="flex-1 relative bg-black w-full h-full overflow-hidden">
+
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="absolute top-4 left-4 z-50 p-2 bg-black/80 backdrop-blur text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors shadow-lg"
+          title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+        >
+          {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+        </button>
+
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900/50 via-black to-black pointer-events-none z-0" />
         <RiskMap
           conflicts={conflicts}
