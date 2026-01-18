@@ -20,7 +20,7 @@ type SortType = "date" | "type";
 export default function Home() {
   const [conflicts, setConflicts] = useState<ConflictEvent[]>([])
   const [loading, setLoading] = useState(true)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20])
   const [mapZoom, setMapZoom] = useState(1)
   const [selectedConflictId, setSelectedConflictId] = useState<string | null>(null)
@@ -36,6 +36,7 @@ export default function Home() {
   }
 
   useEffect(() => {
+    // Initial fetch
     loadData()
     const interval = setInterval(loadData, 5 * 60 * 1000)
     return () => clearInterval(interval)
@@ -179,7 +180,7 @@ export default function Home() {
         {/* Last Updated */}
         <div className="px-4 py-2 border-b border-border bg-black/10 flex items-center gap-2 text-[10px] text-gray-500">
           <Clock className="w-3 h-3" />
-          <span>Last update: {lastUpdated.toLocaleTimeString('it-IT')}</span>
+          <span>Last update: {lastUpdated ? lastUpdated.toLocaleTimeString('it-IT') : '...'}</span>
           <span className="ml-auto">{displayedEvents.length} events</span>
         </div>
 

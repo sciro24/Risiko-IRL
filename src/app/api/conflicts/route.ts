@@ -187,17 +187,23 @@ export async function GET() {
                         intensity: intensity
                     });
                 }
-            } catch (err) {
-                console.error(`Error fetching ${eventType}:`, err);
+            } catch (error: any) {
+                // Handle Rate Limiting (429) gracefully to avoid console noise
+                if (error.response?.status === 429) {
+                    // console.warn(`⚠️ GDELT Rate Limit (429) fetching ${eventType}. Skipping.`);
+                    return;
+                }
+
+                console.error(`Error fetching ${eventType}:`, error.message || error);
             }
         });
 
         await Promise.all(fetchPromises);
 
         // Add fallback events if needed
-        if (allEvents.length < 10) {
-            allEvents.push(...getKnownEvents());
-        }
+        // 3. Add known ongoing conflicts and ACLED events
+        const acledEvents = await fetchAcledEvents();
+        allEvents.push(...getKnownEvents(), ...acledEvents);
 
         // Sort by date
         allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -209,6 +215,118 @@ export async function GET() {
     }
 }
 
+// ACLED OAuth Token Cache
+let acledToken: string | null = null;
+let tokenExpiry: number = 0;
+
+// Helper to authenticate with ACLED
+async function getAcledToken(email: string, password: string): Promise<string | null> {
+    // Return cached token if still valid (with 5 min buffer)
+    if (acledToken && Date.now() < tokenExpiry - 300000) {
+        return acledToken;
+    }
+
+    try {
+        const params = new URLSearchParams();
+        params.append('username', email);
+        params.append('password', password);
+        params.append('grant_type', 'password');
+        params.append('client_id', 'acled'); // Standard client id per docs
+
+        // Note: Using the exact endpoint from your screenshot
+        const response = await axios.post('https://acleddata.com/oauth/token', params, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        if (response.data && response.data.access_token) {
+            acledToken = response.data.access_token;
+            // expires_in is usually in seconds (86400 = 24h)
+            tokenExpiry = Date.now() + (response.data.expires_in * 1000);
+            return acledToken;
+        }
+    } catch (error) {
+        console.error("ACLED Auth Failed:", error);
+    }
+    return null;
+}
+
+// Helper to get ACLED data using OAuth
+async function fetchAcledEvents() {
+    // TEMPORARILY DISABLED: User account needs specific authorization from ACLED support.
+    // Uncomment the logic below once access is granted.
+    return [];
+
+    /* 
+    const email = process.env.ACLED_EMAIL;
+    const password = process.env.ACLED_PASSWORD;
+    // ... rest of the logic ...
+    */
+
+    /* 
+    const email = process.env.ACLED_EMAIL;
+    const password = process.env.ACLED_PASSWORD;
+    const now = new Date();
+
+    // 1. Only proceed if credentials exist
+    if (email && password) {
+        try {
+            const token = await getAcledToken(email, password);
+            if (!token) return [];
+
+            // Fetch last 90 days
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 90);
+            const dateStr = startDate.toISOString().split('T')[0];
+
+            // DEBUG: Minimal query to acleddata.com/api (CORRECT URL)
+            const response = await axios.get('https://acleddata.com/api/acled/read', {
+                params: {
+                    limit: 5,
+                    read_from_page: 1
+                },
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.data && response.data.data) {
+                return response.data.data.map((e: any) => ({
+                    id: `acled-${e.event_id_cnty}`,
+                    source: "ACLED",
+                    eventType: e.event_type.includes("Violence") ? "terrorism" : "civil_war",
+                    lat: parseFloat(e.latitude),
+                    lon: parseFloat(e.longitude),
+                    actor1Name: e.actor1,
+                    actor1Code: e.inter1,
+                    actor2Name: e.country,
+                    date: e.event_date,
+                    startDate: CONFLICT_START_DATES[extractCountry(e.country)] || e.event_date,
+                    angle: Math.random() * 360,
+                    goldstein: -9, // Default bad score for verified conflicts
+                    sourceUrl: "https://acleddata.com",
+                    title: `${e.event_type}: ${e.notes}`,
+                    casualties: parseInt(e.fatalities) || 0,
+                    color: "#dc2626",
+                    label: e.event_type,
+                    duration: calculateDuration(e.country),
+                    intensity: parseInt(e.fatalities) > 10 ? "High Intensity" : "Medium Intensity"
+                })).filter((e: any) => e.casualties > 0);
+            }
+        } catch (error: any) {
+            console.error("ACLED Data Fetch Error:", error.message);
+            if (error.response) {
+                // Log detailed API error message
+                console.error("ACLED Response Data:", JSON.stringify(error.response.data, null, 2));
+            }
+        }
+    }
+    */
+
+    // Return empty if no credentials or error (Zero Fake Data)
+    return [];
+}
 // Calculate duration based on known start dates
 function calculateDuration(country: string): string {
     const startDateStr = CONFLICT_START_DATES[extractCountry(country)]; // Simplify matching
