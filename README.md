@@ -12,7 +12,7 @@
 
 *Transform real-time geopolitical data into a Risk-style board game visualization*
 
-[Live Demo](#demo) • [Features](#-features) • [Installation](#-installation) • [Tech Stack](#-tech-stack) • [API](#-api)
+[Live Demo](#-Overview) • [Features](#-features) • [Installation](#-installation) • [Tech Stack](#-tech-stack) • [API](#-api)
 
 </div>
 
