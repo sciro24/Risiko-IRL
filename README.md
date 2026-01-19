@@ -41,7 +41,7 @@
 
 ## 🌟 Overview
 
-🔴 **LIVE DEMO:** [world-conflict-map.vercel.app](https://world-conflict-map.vercel.app)
+🔴 **LIVE DEMO:** [world-conflicts-map.vercel.app](https://world-conflicts-map.vercel.app)
 
 **WORLD CONFLICT MAP** is a web-based dashboard designed to visualize global geopolitical events and conflicts in real-time. By leveraging data from the [GDELT Project](https://www.gdeltproject.org/), the application provides an accessible interface to monitor international developments, offering a clear graphical representation of active conflict zones.
 
